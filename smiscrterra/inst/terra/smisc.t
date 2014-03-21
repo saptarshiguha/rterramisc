@@ -50,27 +50,50 @@ smisc.qsort=function (src, length, size,compfunc)
    stdlib.qsort(src,length,size, _cmp:getdefinitions()[1]:getpointer())
 end
 
+function smisc.ascendingComparator(T)
+   return terra(l0:&opaque, r0:&opaque)
+      var l,r = [&T](l0), [&T](r0)
+      if  l>r  then
+	 return 1
+      elseif (l<r) then
+	 return -1;
+      else
+	 return 0;
+      end
+	  end
+end
+
+function smisc.descendingComparator(T)
+   return terra(l0:&opaque, r0:&opaque)
+      var l,r = [&T](l0), [&T](r0)
+      if  l>r  then
+	 return -1
+      elseif (l<r) then
+	 return 1;
+      else
+	 return 0;
+      end
+	  end
+end
 --! @brief Computes the dot product of two vetors
 --! @param x vector one
 --! @param w vector two
 --! @param n is the common length of both
-smisc.dotproduct=terra (x:double,w:double, n:int)
-   var s = 0.0
-   for i=0,n-1 do
-      s = s+ x[i]*w[i]
+terra smisc.dotproduct 
+for _,T  in pairs({ double, int}) do
+   local I = terralib.cast(T, 0)
+   terra smisc.dotproduct(x:&T,w:&T, n:int)
+      var s = [I]
+      for i=0,n-1 do
+	 s = s+ x[i]*w[i]
+      end
+      return s
    end
-   return s
-end
-smisc.dotproduct=terra (x:int,w:int, n:int)
-   var s = 0
-   for i=0,n-1 do
-      s = s+ x[i]*w[i]
-   end
-   return s
 end
 
 
-smisc.stddev=terra (x:double, n:int)
+
+terra smisc.stddev(x:&double, n:int)
    var m,s= x[0],0.0
    var mnew = 0.0
    for i = 1, n-1 do
@@ -94,7 +117,7 @@ smisc.doubleArray = Array(double)
 
 --! This is the default rng. Dont share this across threads.
 --! Maybe you can, i'm not sure
-smisc.rng = smisc.init_default_rng()
+smisc.default_rng = smisc.init_default_rng()
 smisc.gsl=gsl
 
 return smisc
