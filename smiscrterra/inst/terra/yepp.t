@@ -67,4 +67,5 @@ yepp.yepMath_Log_V64f_V64f = function(x)
    return r1
 end
 
+yepp.__lib = yepplib
 return yepp
