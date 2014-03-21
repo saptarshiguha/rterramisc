@@ -1,0 +1,11 @@
+Package: smiscrterra
+Type: Package
+Title: Sguha's misc routines for rterra
+Version: 1.0
+Date: 2014-03-20
+Author: Saptarshi Guha
+Maintainer: Saptarshi Guha <saptarshi.guha@gmail.com>
+Description: Sample Routines for rterra
+License: Mozilla Public License
+Depends: rterra
+Packaged: 2013-12-10 20:47:09 UTC; sguha
