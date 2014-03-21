@@ -47,6 +47,7 @@ smisc.qsort=function (src, length, size,compfunc)
       var s= @([&T](elem2))
       return compfunc(f,s)
    end
+   _cmp:compile()
    stdlib.qsort(src,length,size, _cmp:getdefinitions()[1]:getpointer())
 end
 
@@ -90,7 +91,7 @@ for _,T  in pairs({ double, int}) do
       return s
    end
 end
-
+smisc.dotproduct:compile()
 
 
 terra smisc.stddev(x:&double, n:int)
@@ -103,6 +104,7 @@ terra smisc.stddev(x:&double, n:int)
    end
    return  s/(n - 1.0)
 end
+smisc.stddev:compile()
 
 local function Array(typ)
     return terra(N : int)
@@ -113,6 +115,8 @@ end
 
 smisc.intArray = Array(int)
 smisc.doubleArray = Array(double)
+smisc.doubleArray:compile()
+smisc.intArray:compile()
 
 
 --! This is the default rng. Dont share this across threads.
