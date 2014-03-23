@@ -50,5 +50,4 @@ function A.shifthd (x_,y_, nboot_)
    return ret
 end
 
-A.hd = hd
 return A
