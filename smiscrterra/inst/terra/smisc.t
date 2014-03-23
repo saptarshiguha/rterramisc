@@ -1,5 +1,5 @@
 
-local smisc0 = terralib.require 'smisc'
+local smisc0 = terralib.require 'smisc0'
 local shifthd = terralib.require 'shifthd'
 
 local smisc = {}
