@@ -14,8 +14,8 @@ local terra  hd(x : &double,n : int,q : double)
    -- x is a pointer, n is length and q is the 'q' value to HD
    var w = smisc.doubleArray(n)
    var m1,m2 = (n+1)*q,(n+1)*(1-q)
-   for i =1, n do
-      w[i-1] = pbeta(i*1.0/n, m1,m2,true) - pbeta((i-1.0)/n,m1,m2,true)
+   for i =0, n do
+      w[i] = pbeta(([double](i+1))/n, m1,m2,true) - pbeta(([double](i))/n,m1,m2,true)
    end
    stdlib.qsort(x, n, sizeof(double),doubleAscending)
    var s:double
@@ -50,4 +50,5 @@ function A.shifthd (x_,y_, nboot_)
    return ret
 end
 
+A.hd = hd
 return A

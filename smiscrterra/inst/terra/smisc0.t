@@ -41,19 +41,12 @@ end
 --! members compare as equal, their order in the sorted array is undefined.
 --! @return nil
 smisc.qsort=function (src, length, size,compfunc)
-   local T = compfunc:gettype()['parameters'][1] -- second must be the same
-   local _cmp = terra (elem1 : &opaque, elem2: &opaque)
-      var f= @([&T](elem1))
-      var s= @([&T](elem2))
-      return compfunc(f,s)
-   end
-   _cmp:compile()
-   stdlib.qsort(src,length,size, _cmp:getdefinitions()[1]:getpointer())
+   stdlib.qsort(src,length,size, compfunc:getdefinitions()[1]:getpointer())
 end
 
 function smisc.ascendingComparator(T)
    return terra(l0:&opaque, r0:&opaque)
-      var l,r = [&T](l0), [&T](r0)
+      var l,r = @([&T](l0)), @([&T](r0))
       if  l>r  then
 	 return 1
       elseif (l<r) then
@@ -66,7 +59,7 @@ end
 
 function smisc.descendingComparator(T)
    return terra(l0:&opaque, r0:&opaque)
-      var l,r = [&T](l0), [&T](r0)
+      var l,r = @([&T](l0)), @([&T](r0))
       if  l>r  then
 	 return -1
       elseif (l<r) then
@@ -85,7 +78,7 @@ for _,T  in pairs({ double, int}) do
    local I = terralib.cast(T, 0)
    terra smisc.dotproduct(x:&T,w:&T, n:int)
       var s = [I]
-      for i=0,n-1 do
+      for i=0,n do
 	 s = s+ x[i]*w[i]
       end
       return s
