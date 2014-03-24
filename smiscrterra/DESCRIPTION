@@ -7,5 +7,6 @@ Author: Saptarshi Guha
 Maintainer: Saptarshi Guha <saptarshi.guha@gmail.com>
 Description: Sample Routines for rterra
 License: Mozilla Public License
-Depends: rterra
+Depends:
+    rterra
 Packaged: 2013-12-10 20:47:09 UTC; sguha

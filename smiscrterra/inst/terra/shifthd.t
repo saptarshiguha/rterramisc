@@ -30,7 +30,7 @@ local terra  hd1(x : &double,n : int,q : double, w:&double)
 end
 hd:adddefinition(hd0)
 hd:adddefinition(hd1)
-hd:printpretty()
+hd:compile()
 
 terra preComputeBetaDiff( n:int, q:double)
    var w = smisc.doubleArray(n)
