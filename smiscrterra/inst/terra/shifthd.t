@@ -10,32 +10,50 @@ end
 
 doubleAscending = smisc.ascendingComparator(double)
 doubleAscending:compile()
-local terra  hd(x : &double,n : int,q : double)
-   -- x is a pointer, n is length and q is the 'q' value to HD
+local terra hd
+local terra  hd0(x : &double,n : int,q : double)
+   -- -- x is a pointer, n is length and q is the 'q' value to HD
    var w = smisc.doubleArray(n)
-   var m1,m2 = (n+1)*q,(n+1)*(1-q)
+   var m1,m2 = (n+1.0)*q,(n+1.0)*(1.0-q)
    for i =0, n do
       w[i] = pbeta(([double](i+1))/n, m1,m2,true) - pbeta(([double](i))/n,m1,m2,true)
    end
    stdlib.qsort(x, n, sizeof(double),doubleAscending)
-   var s:double
-   s = smisc.dotproduct(w,x,n)
+   var s = smisc.dotproduct(w,x,n)
    stdlib.free(w)
-   return(s )
+   return(s)
 end
-hd:compile()
+local terra  hd1(x : &double,n : int,q : double, w:&double)
+   stdlib.qsort(x, n, sizeof(double),doubleAscending)
+   var s = smisc.dotproduct(w,x,n)
+   return(s)
+end
+hd:adddefinition(hd0)
+hd:adddefinition(hd1)
+hd:printpretty()
+
+terra preComputeBetaDiff( n:int, q:double)
+   var w = smisc.doubleArray(n)
+   var m1,m2 = (n+1.0)*q,(n+1.0)*(1.0-q)
+   for i =0, n do
+      w[i] = pbeta(([double](i+1))/n, m1,m2,true) - pbeta(([double](i))/n,m1,m2,true)
+   end
+   return(w)
+end
+
 local function bsHDVariance(rng, dest,  src,  nb,q)
    local ha=ffi.gc(smisc.doubleArray(nb),Rbase.free)
+   local wprecomp = ffi.gc( preComputeBetaDiff(#src,q),Rbase.free)
    for bootindex = 1,nb do
       smisc.gsl.gsl_ran_sample (rng, dest, #src, src.ptr, #src, sizeof(double)) -- SRSWR n out on
-      ha[bootindex-1] = hd( dest, #src, q)
+      ha[bootindex-1] = hd( dest, #src, q,wprecomp)
    end
    local s =  smisc.stddev(ha,nb)
    return(s)
 end
 
 function A.shifthd (x_,y_, nboot_)
-   local x,y, nboot = R.Robj(x_), R.Robj(y_), R.Robj(nboot_)
+   local x,y, nboot = R.Robj(R.duplicateObject(x_)), R.Robj(R.duplicateObject(y_)), R.Robj(nboot_)
    local crit = 80.1/math.pow(math.min(#x, #y),2) + 2.73
    local rng = smisc.default_rng
    local xarray,yarray =ffi.gc(smisc.doubleArray(#x),Rbase.free), ffi.gc(smisc.doubleArray(#y),Rbase.free)
@@ -50,4 +68,5 @@ function A.shifthd (x_,y_, nboot_)
    return ret
 end
 
+A.hd = hd
 return A
