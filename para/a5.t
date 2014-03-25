@@ -13,7 +13,7 @@ function tbb.rprint(s, l, i) -- recursive Print (structure, limit, indent)
    if (ts ~= "table") then print (i,ts,s); return l-1 end
    print (i,ts); -- print "table"
    for k,v in pairs(s) do -- print "[KEY] VALUE"
-      l = rprint(v, l, i.."\t["..tostring(k).."]");
+      l = tbb.rprint(v, l, i.."\t["..tostring(k).."]");
       if (l < 0) then break end
    end
    return l
@@ -140,13 +140,33 @@ function tbb.lpapply(arg)
    local grain = arg.grain or 100
    if data then 
       local terra x()
-	 var b = papply(input, length, functor,data, grain)
+	 var b = tbb.papply(input, length, functor,data, grain)
 	 return b
       end
       return x()
    else
       local terra x()
-   	 var b = papply(input, length, functor,nil, grain)
+   	 var b = tbb.papply(input, length, functor,nil, grain)
+   	 return b
+      end
+      return x()
+   end
+end
+
+function tbb.npar(arg)
+   local length = arg.length or error("papply needs the length of the input array")
+   local functor = arg.functor or error("papply needs the function to apply to the array")
+   local data = arg.data
+   local grain = arg.grain or 100
+   if data then 
+      local terra x()
+	 var b = tbb.papply(nil, length, functor,data, grain)
+	 return b
+      end
+      return x()
+   else
+      local terra x()
+   	 var b = tbb.papply(nil, length, functor,nil, grain)
    	 return b
       end
       return x()
@@ -186,19 +206,23 @@ end
 -- tbb.examples.dummy2:printpretty()
 -- tbb.examples.dummy2()
 
--- local function makeArray(T,n1)
---    local terra make(n:int)
---       var b = [&T](stdlib.malloc(n*sizeof(T)))
---       for i = 0 , n do
--- 	 b[i] = i
---       end
---       return b
---    end
---    return make(n1)
--- end
+terra foo(index:int, input:&opaque)
+   stdio.printf("%d\n",index)
+end
+local function makeArray(T,n1)
+   local terra make(n:int)
+      var b = [&T](stdlib.malloc(n*sizeof(T)))
+      for i = 0 , n do
+	 b[i] = i
+      end
+      return b
+   end
+   return make(n1)
+end
 
--- local input = makeArray(double, 10)
--- local result = lpapply{input=input,length=10, functor =examplefunctor , grain=1 }
--- print(result)
+local input = makeArray(double, 10)
+-- local result = tbb.lpapply{input=input,length=10, functor =tbb.examples.examplefunctor , grain=1 }
+local result = tbb.npar{length=10, functor =foo , grain=1 }
+print(result)
 
 return tbb
