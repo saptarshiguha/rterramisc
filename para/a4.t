@@ -57,9 +57,6 @@ LongLongCounter = _createCounter(int64)
 paraply = macro(function(i,l,r,nr,gr)
 		   gr = gr or 100
 		   local grt = r.tree.expression.value
-		   print("DKDKD")
-		   print(grt)
-		   print("HEYE")
 		   grt:compile(false)
 		   local _,fty =grt:peektype()
 		   local rty = fty.returntype
@@ -129,21 +126,28 @@ terra mainRunner( i:uint, input : &&uint8, notes: &opaque)
 end
 
 
-terra mainRunner2( i:uint, input : &&uint8,notes: &tbb.AtomicCounters)
-   stdio.printf("runner %d,%s\n", i,input[i])
-   notes:add(1)
-   return input[i]
-end
 
 function lparaply(inputArray, N, runner,counter,gr)
-   gr = gr or nil
-   counter = counter or nil
-   local a = terra ()
-      var n:int  = [N]
-      var b =  paraply(inputArray,n,runner,nil,10)
-      return b
+   gr = gr or 100
+   local a
+   if counter then 
+      a = terra ()
+	 var b =  paraply(inputArray,N,runner,counter,gr)
+	 return b
+      end
+   else
+      a = terra ()
+	 var b =  paraply(inputArray,N,runner,nil,gr)
+	 return b
+      end
    end
    return a()
+end
+
+terra mainRunner2( i:uint, input : &&uint8,notes: &tbb.AtomicCounters)
+   stdio.printf("mainRunner2 %p,%d,%s\n",input, i,input[i])
+   notes:add(1)
+   return input[i]
 end
 
 terra foo2()
@@ -151,14 +155,43 @@ terra foo2()
    var g = 1
    var atc = ULongLongCounter(0)
    atc:add(1)
-   var input = array("one","two","threee","four")
-   var output=paraply(input,N,mainRunner2,&atc)
+   var input = arrayof("one","two","threee","four")
+   stdio.printf("%p\n",input)
+   var output=paraply( [&&uint8](input),N,mainRunner2,&atc)
    for i =0,4 do
       stdio.printf("%s .. %d %d, \n", output[i],i,atc:get())
    end
    atc:free()
 end
 -- foo2:printpretty()
-foo2()
+-- foo2()
 -- foo()
--- lparaply({"one","twooo","threeee"},3, mainRunner2)
+terra G(a:int)
+   var x = [&double](stdlib.malloc(a*sizeof(int)))
+   for i = 0, a do
+      x[i] = i*1.0
+   end
+   return x
+end
+-- N = 4
+-- x=G(N)
+
+
+terra mainRunner3( i:uint, input : &double)
+   stdio.printf("runner %p %p\n", input,input[i])
+   return input[i]
+end
+
+-- -- lparaply(x,N, mainRunner3)
+-- print("next")
+terra foo3()
+   var g=10
+   var N=3
+   var l = G(N)
+   stdio.printf("%p\n",l)
+   paraply(l,N,mainRunner3,nil, g)
+   -- for i= 0, N do
+   --    stdio.printf("%f\n",output[i])
+   -- end
+end
+foo3()
