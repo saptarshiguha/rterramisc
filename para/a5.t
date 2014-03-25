@@ -1,12 +1,12 @@
-tbb   = terralib.includecstring [[
+local tbb   = terralib.includecstring [[
   #include <tbbexample.h>
 ]]
-stdlib = terralib.includec("stdlib.h")
-stdio = terralib.includec("stdio.h")
-unistd = terralib.includec("unistd.h")
+local stdlib = terralib.includec("stdlib.h")
+local stdio = terralib.includec("stdio.h")
+local unistd = terralib.includec("unistd.h")
 terralib.linklibrary("tbb.so")
 
-function rprint(s, l, i) -- recursive Print (structure, limit, indent)
+function tbb.rprint(s, l, i) -- recursive Print (structure, limit, indent)
    l = (l) or 100; i = i or "";	-- default item limit, indent string
    if (l<1) then print "ERROR: Item limit reached."; return l-1 end;
    local ts = type(s);
@@ -19,7 +19,7 @@ function rprint(s, l, i) -- recursive Print (structure, limit, indent)
    return l
 end	
 
-function _createCounter(typ)
+function tbb._createCounter(typ)
    local m={}
    m.uint64 = {create= tbb.create_atomic_ull_counter, fetchAndAdd  = tbb.fetch_and_add_atomic_ull_counter,
 	fetchAndStore = tbb.fetch_and_store_atomic_ull_counter, get = tbb.get_atomic_ull_counter, free = tbb.free_ull_counter}
@@ -52,10 +52,10 @@ function _createCounter(typ)
       return b
 	  end
 end
-ULongLongCounter = _createCounter(uint64)
-LongLongCounter = _createCounter(int64)
+tbb.ULongLongCounter =tbb. _createCounter(uint64)
+tbb.LongLongCounter = tbb._createCounter(int64)
 
-function _papply( input, length, functor,data, grain)
+local function _papply( input, length, functor,data, grain)
    length = length:asvalue()
    grain = grain or 100
    functor = functor.tree.expression.value
@@ -131,8 +131,8 @@ function _papply( input, length, functor,data, grain)
     end
 end
 
-papply = macro(_papply)
-function lpapply(arg)
+tbb.papply = macro(_papply)
+function tbb.lpapply(arg)
    local input = arg.input or error("papply needs an input array(cdata)")
    local length = arg.length or error("papply needs the length of the input array")
    local functor = arg.functor or error("papply needs the function to apply to the array")
@@ -153,49 +153,52 @@ function lpapply(arg)
    end
 end
 
-terra examplefunctor(index:int, input:&double, data:&tbb.AtomicCounters)
+tbb.examples={}
+terra tbb.examples.examplefunctor(index:int, input:&double, data:&tbb.AtomicCounters)
    stdio.printf("%d\n", index)
    return index
 end
-terra examplefunctor(index:int, input:&double)
+terra tbb.examples.examplefunctor(index:int, input:&double)
    stdio.printf("%d\n", index)
    return index
 end
-terra dummy()
+terra tbb.examples.dummy()
    var b= [&double](stdlib.malloc(100))
-   var atc = ULongLongCounter(0)
-   var z= papply(b,12,examplefunctor)
+   var atc = tbb.ULongLongCounter(0)
+   var z= tbb.papply(b,12,tbb.examples.examplefunctor)
    for i=0, 12 do
       stdio.printf("result[%d] = %d\n",i,z[i])
    end
 end
 
-terra examplefunctor2(index:int, input:&&uint8)
+terra tbb.examples.examplefunctor2(index:int, input:&&uint8)
    stdio.printf("%d\n", index)
    return input[index]
 end
-terra dummy2()
+terra tbb.examples.dummy2()
    var b= [&&int8](array("one","two","three","four","five"))
-   var atc = ULongLongCounter(0)
-   var z= papply(b,5,examplefunctor2,nil,1)
+   var atc = tbb.ULongLongCounter(0)
+   var z=tbb.papply(b,5,tbb.examples.examplefunctor2,nil,1)
    for i=0, 5 do
       stdio.printf("result[%d] = %s\n",i,z[i])
    end
 end
-dummy2:printpretty()
-dummy2()
+-- tbb.examples.dummy2:printpretty()
+-- tbb.examples.dummy2()
 
-function makeArray(T,n1)
-   local terra make(n:int)
-      var b = [&T](stdlib.malloc(n*sizeof(T)))
-      for i = 0 , n do
-	 b[i] = i
-      end
-      return b
-   end
-   return make(n1)
-end
+-- local function makeArray(T,n1)
+--    local terra make(n:int)
+--       var b = [&T](stdlib.malloc(n*sizeof(T)))
+--       for i = 0 , n do
+-- 	 b[i] = i
+--       end
+--       return b
+--    end
+--    return make(n1)
+-- end
 
-local input = makeArray(double, 10)
-result = lpapply{input=input,length=10, functor =examplefunctor , grain=1 }
-print(result)
+-- local input = makeArray(double, 10)
+-- local result = lpapply{input=input,length=10, functor =examplefunctor , grain=1 }
+-- print(result)
+
+return tbb
