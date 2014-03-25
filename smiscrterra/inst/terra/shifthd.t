@@ -28,8 +28,6 @@ terra  A.hd(x : &double,n : int,q : double, w:&double)
    var s = smisc.dotproduct(w,x,n)
    return(s)
 end
--- hd:adddefinition(hd0)
--- hd:adddefinition(hd1)
 A.hd:compile()
 
 terra preComputeBetaDiff( n:int, q:double)
@@ -51,7 +49,6 @@ local function bsHDVariance(rng, dest,  src,  nb,q)
    local s =  smisc.stddev(ha,nb)
    return(s)
 end
-
 
 local function PbsHDVariance(rng, dest,  src,  nb,q,grain)   
    local ha=ffi.gc(smisc.doubleArray(nb),Rbase.free)

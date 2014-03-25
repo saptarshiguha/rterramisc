@@ -1,23 +1,9 @@
-local tbb   = terralib.includecstring [[
-  #include <tbbexample.h>
-]]
+local tbb   = terralib.includec("tbbexample.h","-I",Rbase.cincludesearchpath['smiscrterra'])
 local stdlib = terralib.includec("stdlib.h")
 local stdio = terralib.includec("stdio.h")
 local unistd = terralib.includec("unistd.h")
-terralib.linklibrary("tbb.so")
+-- terralib.linklibrary("./tbb.so")
 
-function tbb.rprint(s, l, i) -- recursive Print (structure, limit, indent)
-   l = (l) or 100; i = i or "";	-- default item limit, indent string
-   if (l<1) then print "ERROR: Item limit reached."; return l-1 end;
-   local ts = type(s);
-   if (ts ~= "table") then print (i,ts,s); return l-1 end
-   print (i,ts); -- print "table"
-   for k,v in pairs(s) do -- print "[KEY] VALUE"
-      l = tbb.rprint(v, l, i.."\t["..tostring(k).."]");
-      if (l < 0) then break end
-   end
-   return l
-end	
 
 function tbb._createCounter(typ)
    local m={}
@@ -206,23 +192,23 @@ end
 -- tbb.examples.dummy2:printpretty()
 -- tbb.examples.dummy2()
 
-terra foo(index:int, input:&opaque)
-   stdio.printf("%d\n",index)
-end
-local function makeArray(T,n1)
-   local terra make(n:int)
-      var b = [&T](stdlib.malloc(n*sizeof(T)))
-      for i = 0 , n do
-	 b[i] = i
-      end
-      return b
-   end
-   return make(n1)
-end
+-- terra foo(index:int, input:&opaque)
+--    stdio.printf("%d\n",index)
+-- end
+-- local function makeArray(T,n1)
+--    local terra make(n:int)
+--       var b = [&T](stdlib.malloc(n*sizeof(T)))
+--       for i = 0 , n do
+-- 	 b[i] = i
+--       end
+--       return b
+--    end
+--    return make(n1)
+-- end
 
-local input = makeArray(double, 10)
--- local result = tbb.lpapply{input=input,length=10, functor =tbb.examples.examplefunctor , grain=1 }
-local result = tbb.npar{length=10, functor =foo , grain=1 }
-print(result)
+-- local input = makeArray(double, 10)
+-- -- local result = tbb.lpapply{input=input,length=10, functor =tbb.examples.examplefunctor , grain=1 }
+-- local result = tbb.npar{length=10, functor =foo , grain=1 }
+-- print(result)
 
 return tbb
