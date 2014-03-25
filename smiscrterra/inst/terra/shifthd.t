@@ -10,8 +10,8 @@ end
 
 doubleAscending = smisc.ascendingComparator(double)
 doubleAscending:compile()
-local terra hd
-local terra  hd0(x : &double,n : int,q : double)
+terra A.hd
+terra  A.hd(x : &double,n : int,q : double)
    -- -- x is a pointer, n is length and q is the 'q' value to HD
    var w = smisc.doubleArray(n)
    var m1,m2 = (n+1.0)*q,(n+1.0)*(1.0-q)
@@ -23,14 +23,14 @@ local terra  hd0(x : &double,n : int,q : double)
    stdlib.free(w)
    return(s)
 end
-local terra  hd1(x : &double,n : int,q : double, w:&double)
+terra  A.hd(x : &double,n : int,q : double, w:&double)
    stdlib.qsort(x, n, sizeof(double),doubleAscending)
    var s = smisc.dotproduct(w,x,n)
    return(s)
 end
-hd:adddefinition(hd0)
-hd:adddefinition(hd1)
-hd:compile()
+-- hd:adddefinition(hd0)
+-- hd:adddefinition(hd1)
+A.hd:compile()
 
 terra preComputeBetaDiff( n:int, q:double)
    var w = smisc.doubleArray(n)
@@ -46,7 +46,7 @@ local function bsHDVariance(rng, dest,  src,  nb,q)
    local wprecomp = ffi.gc( preComputeBetaDiff(#src,q),Rbase.free)
    for bootindex = 1,nb do
       smisc.gsl.gsl_ran_sample (rng, dest, #src, src.ptr, #src, sizeof(double)) -- SRSWR n out on
-      ha[bootindex-1] = hd( dest, #src, q,wprecomp)
+      ha[bootindex-1] = A.hd( dest, #src, q,wprecomp)
    end
    local s =  smisc.stddev(ha,nb)
    return(s)
@@ -60,7 +60,7 @@ local function PbsHDVariance(rng, dest,  src,  nb,q,grain)
    local l,q,dest = terralib.cast(int, #src),terralib.cast(double, q),terralib.cast(&double, dest)
    local terra fillin(index:int, input:&opaque)
       smisc.gsl.gsl_ran_sample (rng, dest, l, [src.ptr], l, sizeof(double)) -- SRSWR n out on
-      return hd1(dest,l,q,wprecomp)
+      return A.hd(dest,l,q,wprecomp)
    end
    local ha = tbb.npar{length=nb, functor=fillin,grain=grain}
    local s =  smisc.stddev(ha,nb)
@@ -77,7 +77,7 @@ function A.shifthd (x_,y_, nboot_)
       local q = i/10
       local sex = bsHDVariance( rng, xarray, x,  nboot[0],q)
       local sey = bsHDVariance( rng, yarray, y,  nboot[0],q)
-      local dif = hd(y.ptr, #y,q) - hd(x.ptr,#x,q)
+      local dif = A.hd(y.ptr, #y,q) - A.hd(x.ptr,#x,q)
       ret[i-1] = R.Robj{type='numeric', with = {dif-crit*math.sqrt(sex+sey), dif + crit*math.sqrt(sex+sey),dif}}
    end
    return ret
@@ -93,11 +93,10 @@ function A.pshifthd (x_,y_, nboot_,grain_)
       local q = i/10
       local sex = PbsHDVariance( rng, xarray, x,  nboot[0],q,grain)
       local sey = PbsHDVariance( rng, yarray, y,  nboot[0],q,grain)
-      local dif = hd(y.ptr, #y,q) - hd(x.ptr,#x,q)
+      local dif = A.hd(y.ptr, #y,q) - A.hd(x.ptr,#x,q)
       ret[i-1] = R.Robj{type='numeric', with = {dif-crit*math.sqrt(sex+sey), dif + crit*math.sqrt(sex+sey),dif}}
    end
    return ret
 end
 
-A.hd = hd
 return A
