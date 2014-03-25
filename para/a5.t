@@ -102,7 +102,6 @@ function _papply( input, length, functor,data, grain)
    local terra runnerMain([idx]:uint, [ii]:&opaque,[oo]:&&opaque, [da]:&opaque)
       [runnerContents]
    end
-   -- runnerMain:printpretty()
    -- define the code that calls tbb with required args
    local pardrive = terralib.newlist()
    local returnValue,input,length,grain,data = symbol("returnValue"),symbol("input"),symbol("length"), symbol('grain'),symbol('data')
@@ -133,6 +132,26 @@ function _papply( input, length, functor,data, grain)
 end
 
 papply = macro(_papply)
+function lpapply(arg)
+   local input = arg.input or error("papply needs an input array(cdata)")
+   local length = arg.length or error("papply needs the length of the input array")
+   local functor = arg.functor or error("papply needs the function to apply to the array")
+   local data = arg.data
+   local grain = arg.grain or 100
+   if data then 
+      local terra x()
+	 var b = papply(input, length, functor,data, grain)
+	 return b
+      end
+      return x()
+   else
+      local terra x()
+   	 var b = papply(input, length, functor,nil, grain)
+   	 return b
+      end
+      return x()
+   end
+end
 
 terra examplefunctor(index:int, input:&double, data:&tbb.AtomicCounters)
    stdio.printf("%d\n", index)
@@ -166,4 +185,17 @@ end
 dummy2:printpretty()
 dummy2()
 
+function makeArray(T,n1)
+   local terra make(n:int)
+      var b = [&T](stdlib.malloc(n*sizeof(T)))
+      for i = 0 , n do
+	 b[i] = i
+      end
+      return b
+   end
+   return make(n1)
+end
 
+local input = makeArray(double, 10)
+result = lpapply{input=input,length=10, functor =examplefunctor , grain=1 }
+print(result)
