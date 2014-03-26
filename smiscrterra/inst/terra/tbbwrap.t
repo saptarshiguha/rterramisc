@@ -45,7 +45,8 @@ local function _papply( input, length, functor,data, grain)
    length = length:asvalue()
    grain = grain or 100
    functor = functor.tree.expression.value
-   local ipass,lpass,dpass,gpass=input,length,data,grain
+   local ipass,lpass,gpass=input,length,grain
+   local dpass = data or `nil
    local functorRequiredParams = 3
    if data == nil or data.tree.expression.type.name=='niltype' then functorRequiredParams = 2 end
    -- if functorTakesData is true, then the required functor definition has 3 parameters: index,
@@ -90,78 +91,41 @@ local function _papply( input, length, functor,data, grain)
    end
    -- define the code that calls tbb with required args
    local pardrive = terralib.newlist()
-   local returnValue,input,length,grain,data = symbol("returnValue"),symbol("input"),symbol("length"), symbol('grain'),symbol('data')
+   local returnValue,input,length,grain = symbol("returnValue"),symbol("input"),symbol("length"), symbol('grain')
+   local data2 = symbol('data')
+   if not functorRequiredParams ==3 then data2=`nil end
    if funcReturn.name ~= 'anon'  then
       pardrive:insert(quote var [returnValue]  = [&funcReturn]( stdlib.malloc(sizeof(funcReturn)*[length])) end)
-      if functorRequiredParams == 3 then
-    	 pardrive:insert(quote tbb.apply([&opaque]([input]), [&&opaque](&[returnValue]), [length], [grain], runnerMain, [data])  end)
-      else
-    	 pardrive:insert(quote tbb.apply([&opaque]([input]), [&&opaque](&[returnValue]), [length], [grain], runnerMain, nil)  end)
-      end
+      pardrive:insert(quote tbb.apply([&opaque]([input]), [&&opaque](&[returnValue]), [length], [grain], runnerMain, [data2])  end)
       pardrive:insert(quote return([returnValue]) end)
-  else
-      if functorRequiredParams == 3 then
-    	 pardrive:insert(quote tbb.apply([&opaque](input),nil, length, grain, runnerMain, data) end)
-      else
-    	 pardrive:insert(quote tbb.apply([&opaque](input),nil, length, grain, runnerMain, nil) end)
-       end
+    else
+      pardrive:insert(quote tbb.apply([&opaque](input),nil, length, grain, runnerMain, [data2]) end)
     end
-    local terra m([input]:&opaque ,[length]:int, [grain]:int,[data]:&opaque )
+    local terra m([input]:&opaque ,[length]:int, [grain]:int,[data2]:&opaque )
        [pardrive]
     end
-    -- m:printpretty()
-    if functorRequiredParams == 3 then 
-       return `m(ipass,lpass, gpass, dpass)
-    else
-       return `m(ipass,lpass, gpass, nil)
-    end
+    return `m(ipass,lpass, gpass, dpass)
 end
 
 tbb.papply = macro(_papply)
 function tbb.lpapply(arg)
-   local input = arg.input or error("papply needs an input array(cdata)")
+   local input = arg.input or `nil
    local length = arg.length or error("papply needs the length of the input array")
    local functor = arg.functor or error("papply needs the function to apply to the array")
-   local data = arg.data
+   local data = arg.data or `nil
    local grain = arg.grain or 100
-   if data then 
-      local terra x()
-	 var b = tbb.papply(input, length, functor,data, grain)
-	 return b
-      end
-      return x()
-   else
-      local terra x()
-   	 var b = tbb.papply(input, length, functor,nil, grain)
-   	 return b
-      end
-      return x()
+   local terra x()
+      var b = tbb.papply(input, length, functor,data, grain)
+      return b
    end
+   return x()
 end
-
-function tbb.npar(arg)
-   local length = arg.length or error("papply needs the length of the input array")
-   local functor = arg.functor or error("papply needs the function to apply to the array")
-   local data = arg.data
-   local grain = arg.grain or 100
-   if data then 
-      local terra x()
-	 var b = tbb.papply(nil, length, functor,data, grain)
-	 return b
-      end
-      return x()
-   else
-      local terra x()
-   	 var b = tbb.papply(nil, length, functor,nil, grain)
-   	 return b
-      end
-      return x()
-   end
-end
+tbb.npar=tbb.lpapply
 
 tbb.examples={}
 terra tbb.examples.examplefunctor(index:int, input:&double, data:&tbb.AtomicCounters)
    stdio.printf("%d\n", index)
+   data:add(1)
    return index
 end
 terra tbb.examples.examplefunctor(index:int, input:&double)
@@ -171,11 +135,13 @@ end
 terra tbb.examples.dummy()
    var b= [&double](stdlib.malloc(100))
    var atc = tbb.ULongLongCounter(0)
-   var z= tbb.papply(b,12,tbb.examples.examplefunctor)
+   var z= tbb.papply(b,12,tbb.examples.examplefunctor,&atc)
    for i=0, 12 do
       stdio.printf("result[%d] = %d\n",i,z[i])
    end
+   stdio.printf("atc=%d\n",atc:get())
 end
+tbb.examples.dummy()
 
 terra tbb.examples.examplefunctor2(index:int, input:&&uint8)
    stdio.printf("%d\n", index)

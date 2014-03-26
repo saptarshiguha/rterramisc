@@ -27,7 +27,7 @@ extern "C" {
     e.output = output;
     e.runner = runner;
     e.notes = notes;
-    blocked_range<unsigned int> rr = blocked_range<unsigned int>(0,n,grain);
+    blocked_range<unsigned int> rr = blocked_range<unsigned int>(0,n);
     parallel_for( rr, e);
   }
 

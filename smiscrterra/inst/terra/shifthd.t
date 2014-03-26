@@ -50,17 +50,21 @@ local function bsHDVariance(rng, dest,  src,  nb,q)
    return(s)
 end
 
-local function PbsHDVariance(rng, dest,  src,  nb,q,grain)   
+local function PbsHDVariance(rng,  src,  nb,q,grain)   
    local ha=ffi.gc(smisc.doubleArray(nb),Rbase.free)
    local wprecomp = ffi.gc( preComputeBetaDiff(#src,q),Rbase.free)
    grain  =grain or 50
-   local l,q,dest = terralib.cast(int, #src),terralib.cast(double, q),terralib.cast(&double, dest)
+   local l = #src
    local terra fillin(index:int, input:&opaque)
-      smisc.gsl.gsl_ran_sample (rng, dest, l, [src.ptr], l, sizeof(double)) -- SRSWR n out on
-      return A.hd(dest,l,q,wprecomp)
+      var dest = [&double](stdlib.malloc(sizeof(double)*[l]))
+      smisc.gsl.gsl_ran_sample (rng, dest, [l], [src.ptr], [l], sizeof(double)) -- SRSWR n out on
+      var r = A.hd(dest,l,q,wprecomp)
+      Rbase.free(dest)
+      return(r)
    end
    local ha = tbb.npar{length=nb, functor=fillin,grain=grain}
    local s =  smisc.stddev(ha,nb)
+   Rbase.free(ha)
    return(s)
 end
 
@@ -84,12 +88,11 @@ function A.pshifthd (x_,y_, nboot_,grain_)
    local x,y, nboot,grain = R.Robj(R.duplicateObject(x_)), R.Robj(R.duplicateObject(y_)), R.Robj(nboot_),R.Robj(grain_)[0]
    local crit = 80.1/math.pow(math.min(#x, #y),2) + 2.73
    local rng = smisc.default_rng
-   local xarray,yarray =ffi.gc(smisc.doubleArray(#x),Rbase.free), ffi.gc(smisc.doubleArray(#y),Rbase.free)
    local ret = R.Robj{type='vector', length = 9}
    for i = 1,9 do
       local q = i/10
-      local sex = PbsHDVariance( rng, xarray, x,  nboot[0],q,grain)
-      local sey = PbsHDVariance( rng, yarray, y,  nboot[0],q,grain)
+      local sex = PbsHDVariance( rng, x,  nboot[0],q,grain)
+      local sey = PbsHDVariance( rng, y,  nboot[0],q,grain)
       local dif = A.hd(y.ptr, #y,q) - A.hd(x.ptr,#x,q)
       ret[i-1] = R.Robj{type='numeric', with = {dif-crit*math.sqrt(sex+sey), dif + crit*math.sqrt(sex+sey),dif}}
    end
