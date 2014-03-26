@@ -2,6 +2,7 @@ local tbb   = terralib.includec("tbbexample.h","-I",Rbase.cincludesearchpath['sm
 local stdlib = terralib.includec("stdlib.h")
 local stdio = terralib.includec("stdio.h")
 local unistd = terralib.includec("unistd.h")
+local basic_ = terralib.require('basic')
 -- terralib.linklibrary("./tbb.so")
 
 
