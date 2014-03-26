@@ -141,7 +141,7 @@ terra tbb.examples.dummy()
    end
    stdio.printf("atc=%d\n",atc:get())
 end
-tbb.examples.dummy()
+-- tbb.examples.dummy()
 
 terra tbb.examples.examplefunctor2(index:int, input:&&uint8)
    stdio.printf("%d\n", index)
