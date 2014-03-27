@@ -106,29 +106,29 @@ end
 
 
 
-local BB={}
-struct BB.F {
+local struct hdVarStruct {
    rng: &smisc.gsl.gsl_rng;
    w: &double;
    src: &double;
    l:int;
    q:double;
 	       }
-terra BB.F.metamethods.__apply(self: &BB.F)
+terra hdVarStruct.metamethods.__apply(self: &hdVarStruct)
    var dest = smisc.doubleArray(self.l)
    smisc.gsl.gsl_ran_sample (self.rng, dest, self.l,self.src, self.l, sizeof(double)) -- SRSWR n out on
    var r = A.hd(dest,self.l,self.q,self.w)
    Rbase.free(dest)
    return(r)
 end
-terra BB.runme(index:int, input:&opaque, data:&BB.F)
+
+local terra runme(index:int, input:&opaque, data:&hdVarStruct)
    return data()
 end
 
-terra BB.TbsHDVariance(rng : &smisc.gsl.gsl_rng,  src:&double, srclength:int, nb:int,q:double,grain:double)   
+local terra TbsHDVariance(rng : &smisc.gsl.gsl_rng,  src:&double, srclength:int, nb:int,q:double,grain:double)   
    var wprecomp = preComputeBetaDiff(srclength,q)
-   var qdata = BB.F { rng = rng, w = wprecomp, src=src, l=srclength, q =q}
-   var ha = tbb.papply(src, nb, BB.runme, &qdata,grain)
+   var qdata = hdVarStruct { rng = rng, w = wprecomp, src=src, l=srclength, q =q}
+   var ha = tbb.papply(src, nb, runme, &qdata,grain)
    var s =  smisc.stddev(ha,nb)
    Rbase.free(ha)
    return(s)
@@ -143,7 +143,6 @@ local struct F2 {
    nb:int;
    grain:int
 		}
-
 function A.pt2shifthd (x_,y_, nboot_,grain_)
    local x,y, nboot,grain = R.Robj(R.duplicateObject(x_)), R.Robj(R.duplicateObject(y_)), R.Robj(nboot_),R.Robj(grain_)[0]
    local crit = 80.1/math.pow(math.min(#x, #y),2) + 2.73
@@ -151,8 +150,8 @@ function A.pt2shifthd (x_,y_, nboot_,grain_)
    local ret = R.Robj{type='vector', length = 9}
    local b  =terralib.new(F2, {rng, x.ptr, y.ptr,#x,#y,nboot[0], grain})
    local terra m(index:int, input:&double, d:&F2)
-      var sex = BB.TbsHDVariance( d.rng, d.x, d.nx, d.nb, (index+1.0)/10.0 ,d.grain)
-      var sey = BB.TbsHDVariance( d.rng, d.y, d.ny, d.nb, (index+1.0)/10.0 ,d.grain)
+      var sex = TbsHDVariance( d.rng, d.x, d.nx, d.nb, (index+1.0)/10.0 ,d.grain)
+      var sey = TbsHDVariance( d.rng, d.y, d.ny, d.nb, (index+1.0)/10.0 ,d.grain)
       var dif = A.hd(d.y, d.ny,(index+1.0)/10.0 ) - A.hd(d.x,d.nx,(index+1.0)/10.0 )
       return  { sex=sex, sey=sey, dif=dif}
    end
