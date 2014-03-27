@@ -1,3 +1,2 @@
 export(smisc.init)
-export(tpshifthd)
 export(tshifthd)
