@@ -43,7 +43,6 @@ tbb.ULongLongCounter =tbb. _createCounter(uint64)
 tbb.LongLongCounter = tbb._createCounter(int64)
 
 local function _papply( input, length, functor,data, grain)
-   length = length:asvalue()
    grain = grain or 100
    functor = functor.tree.expression.value
    local ipass,lpass,gpass=input,length,grain
